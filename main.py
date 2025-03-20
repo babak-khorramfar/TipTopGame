@@ -164,7 +164,7 @@ class LauncherScreen(Screen):
 
         # فوتر
         footer = Label(
-            text="Contact: info@example.com\nWebsite: www.example.com",
+            text="Contact: info@hiphoptiptop.com    |    Website: www.HipHopTipTop.com",
             size_hint=(1, 0.1),
         )
         main_layout.add_widget(footer)

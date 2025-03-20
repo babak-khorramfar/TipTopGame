@@ -127,7 +127,7 @@ class Game2x2(BoxLayout):
     def flip_selected(self, instance):
         for child in self.main_section.children:
             if isinstance(child, CardWidget) and child.selected:
-                child.face_up = not child.face_up
+                child.animate_flip()
                 break
 
     def rotate_selected(self, instance):
@@ -135,6 +135,7 @@ class Game2x2(BoxLayout):
             for child in self.main_section.children:
                 if isinstance(child, CardWidget) and child.selected:
                     self.selected_card = child
+                    child.animate_rotate()
                     break
         if not self.selected_card:
             return

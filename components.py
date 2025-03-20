@@ -15,6 +15,7 @@ from kivy.graphics import Color, Ellipse, Line, PushMatrix, PopMatrix, Rotate, R
 from kivy.graphics.vertex_instructions import RoundedRectangle
 from kivy.animation import Animation
 from kivy.app import App
+from kivy.core.audio import SoundLoader
 
 CARD_MARGIN = 5
 
@@ -36,8 +37,14 @@ class CardWidget(Widget):
 
     def __init__(self, **kwargs):
         super(CardWidget, self).__init__(**kwargs)
-        self.size_hint = (4, 4)
+        self.size_hint = (None, None)
         self.size = (80, 80)
+        # بارگذاری افکت‌های صوتی
+        self.flip_sound = SoundLoader.load("assets/sounds/flip.wav")
+        self.rotate_sound = SoundLoader.load("assets/sounds/rotate.wav")
+        self.return_sound = SoundLoader.load("assets/sounds/return.wav")
+        self.reset_sound = SoundLoader.load("assets/sounds/reset.wav")
+        self.drop_sound = SoundLoader.load("assets/sounds/drop.wav")
         self.bind(
             pos=self.update_canvas,
             size=self.update_canvas,
@@ -98,6 +105,37 @@ class CardWidget(Widget):
                 Line(rectangle=(self.x, self.y, self.width, self.height), width=2)
             PopMatrix()
 
+    def animate_flip(self):
+        anim1 = Animation(scale_x=0, duration=0.15, t="out_quad")
+
+        def flip_callback(*args):
+            self.face_up = not self.face_up
+
+        anim1.bind(on_complete=lambda *x: flip_callback())
+        anim2 = Animation(scale_x=1, duration=0.15, t="out_quad")
+        (anim1 + anim2).start(self)
+        if self.flip_sound:
+            self.flip_sound.play()
+
+    def animate_rotate(self, delta_angle=90):
+        new_angle = (self.angle + delta_angle) % 360
+        Animation(angle=new_angle, duration=0.2).start(self)
+        if self.rotate_sound:
+            self.rotate_sound.play()
+
+    # می‌توانید متدهای مشابهی برای return و reset هم اضافه کنید
+    def play_return_sound(self):
+        if self.return_sound:
+            self.return_sound.play()
+
+    def play_reset_sound(self):
+        if self.reset_sound:
+            self.reset_sound.play()
+
+    def play_drop_sound(self):
+        if self.drop_sound:
+            self.drop_sound.play()
+
     def on_touch_down(self, touch):
         if self.collide_point(*touch.pos):
             self.touch_offset_x = self.center_x - touch.x
@@ -139,10 +177,12 @@ class CardWidget(Widget):
                 if self.parent:
                     self.parent.remove_widget(self)
                 snapped = game_widget.main_section.drop_card(self, touch.pos)
-                if not snapped:
-                    game_widget.sidebar.add_card(self)
-                else:
+                if snapped:
                     self.in_sidebar = False
+                    self.play_drop_sound()
+                else:
+                    self.play_return_sound()
+                    game_widget.sidebar.add_card(self)
             else:
                 if game_widget.main_section.collide_point(*touch.pos):
                     snapped = game_widget.main_section.drop_card(self, touch.pos)
@@ -169,7 +209,7 @@ class SidebarRow(GridLayout):
     def __init__(self, row_color, **kwargs):
         super(SidebarRow, self).__init__(**kwargs)
         self.row_color = row_color
-        self.cols = kwargs.get("cols", 4)  # اگر مشخص نشود، مقدار پیش‌فرض 4 می‌گیرد.
+        self.cols = kwargs.get("cols", 4)
         self.size_hint_y = None
         self.height = 110
         self.padding = [10, 10, 10, 10]
@@ -207,10 +247,7 @@ class Sidebar(BoxLayout):
             )
             self.add_widget(self.logo)
 
-        # row_colors for sidebar will be set externally in game_6x6
-        self.row_colors = (
-            []
-        )  # default empty; should be set in game-specific implementations
+        self.row_colors = []  # default empty; should be set externally
         self.rows = []
 
         # Button panel
@@ -273,14 +310,14 @@ class Sidebar(BoxLayout):
             Rectangle(pos=self.pos, size=self.size)
 
     def add_card(self, card):
-        # Add card to the row that matches its card_color
+        # اضافه کردن کارت به ردیفی که رنگش با کارت مطابقت دارد
         row_index = None
         for i, color in enumerate(self.row_colors):
             if card.card_color[:3] == color[:3]:
                 row_index = i
                 break
         if row_index is not None and row_index < len(self.rows):
-            card.size = (80, 80)
+            # عدم تغییر اندازه کارت، تا تنظیمات بازی اعمال شود
             self.rows[row_index].add_widget(card)
             card.in_sidebar = True
             card.face_up = True

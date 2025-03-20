@@ -136,7 +136,7 @@ class Game3x3(BoxLayout):
     def flip_selected(self, instance):
         for child in self.main_section.children:
             if isinstance(child, CardWidget) and child.selected:
-                child.face_up = not child.face_up
+                child.animate_flip()
                 break
 
     def rotate_selected(self, instance):
