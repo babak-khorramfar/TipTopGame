@@ -35,6 +35,11 @@ class CardWidget(Widget):
     scale_x = NumericProperty(1)
     selection_border_opacity = NumericProperty(0)
 
+    def play_global_reset_sound():
+        reset_sound = SoundLoader.load("sounds/reset.wav")
+        if reset_sound:
+            reset_sound.play()
+
     def __init__(self, **kwargs):
         super(CardWidget, self).__init__(**kwargs)
         self.size_hint = (None, None)
@@ -173,17 +178,28 @@ class CardWidget(Widget):
             app = App.get_running_app()
             current_screen = app.root.get_screen(app.root.current)
             game_widget = current_screen.children[0]
-            if self.in_sidebar and game_widget.main_section.collide_point(*touch.pos):
-                if self.parent:
-                    self.parent.remove_widget(self)
-                snapped = game_widget.main_section.drop_card(self, touch.pos)
-                if snapped:
-                    self.in_sidebar = False
-                    self.play_drop_sound()
+
+            if self.in_sidebar:
+                # کارت در سایدبار است
+                if game_widget.main_section.collide_point(*touch.pos):
+                    # اگر در سکشن اصلی رها شود
+                    if self.parent:
+                        self.parent.remove_widget(self)
+                    snapped = game_widget.main_section.drop_card(self, touch.pos)
+                    if not snapped:
+                        # اگر اسنپ نشد، دوباره به سایدبار برگرد
+                        game_widget.sidebar.add_card(self)
+                    else:
+                        self.in_sidebar = False
                 else:
-                    self.play_return_sound()
+                    # در همان ناحیه سایدبار رها شده → برگردد به ردیف خودش
+                    # ابتدا از والد حذف کن (اگر والد دارد)
+                    if self.parent:
+                        self.parent.remove_widget(self)
+                    # سپس دوباره به سایدبار اضافه کن
                     game_widget.sidebar.add_card(self)
             else:
+                # کارت در سکشن اصلی است
                 if game_widget.main_section.collide_point(*touch.pos):
                     snapped = game_widget.main_section.drop_card(self, touch.pos)
                     if not snapped and self.old_cell:
@@ -192,16 +208,19 @@ class CardWidget(Widget):
                         self.old_cell["occupied"] = True
                         self.old_cell["card"] = self
                 else:
+                    # از سکشن اصلی بیرون آمده → به خانه قبلی برگردد
                     if self.old_cell:
                         self.pos = self.old_cell["pos"]
                         self.size = self.old_cell["size"]
                         self.old_cell["occupied"] = True
                         self.old_cell["card"] = self
+
             self.old_cell = None
             if not self.in_sidebar:
                 self.selected = True
                 game_widget.selected_card = self
             return True
+
         return super(CardWidget, self).on_touch_up(touch)
 
 
@@ -309,18 +328,31 @@ class Sidebar(BoxLayout):
             Color(0.12, 0.12, 0.12, 1)
             Rectangle(pos=self.pos, size=self.size)
 
-    def add_card(self, card):
-        # اضافه کردن کارت به ردیفی که رنگش با کارت مطابقت دارد
-        row_index = None
+    def get_row_index_for_card(self, card):
+        """بر اساس رنگ کارت، ایندکس ردیفی که باید به آن اضافه شود را برمی‌گرداند."""
         for i, color in enumerate(self.row_colors):
             if card.card_color[:3] == color[:3]:
-                row_index = i
-                break
+                return i
+        return None
+
+    def add_card(self, card):
+        """اضافه کردن کارت به ردیف مرتبط با رنگ آن در سایدبار."""
+        row_index = self.get_row_index_for_card(card)
         if row_index is not None and row_index < len(self.rows):
-            # عدم تغییر اندازه کارت، تا تنظیمات بازی اعمال شود
-            self.rows[row_index].add_widget(card)
+            target_row = self.rows[row_index]
+
+            # اگر کارت از قبل در همین ردیف نیست، ابتدا از والد فعلی حذف کن
+            if card.parent is not target_row:
+                if card.parent is not None:
+                    card.parent.remove_widget(card)
+
+            # حالا بدون مشکل کارت را اضافه می‌کنیم
+            target_row.add_widget(card)
             card.in_sidebar = True
             card.face_up = True
+
+            # برای اطمینان از بروزرسانی آنی، یکبار layout را اجرا می‌کنیم
+            target_row.do_layout()
 
 
 class MainSection(FloatLayout):

@@ -50,7 +50,7 @@ class Game3x3(BoxLayout):
         button_panel = BoxLayout(
             orientation="horizontal",
             size_hint_y=None,
-            height=80,
+            height=100,
             spacing=10,
             padding=[10, 5, 10, 5],
         )
@@ -58,25 +58,25 @@ class Game3x3(BoxLayout):
             background_normal="assets/flip.png",
             background_down="assets/flip_down.png",
             size_hint=(None, None),
-            size=(70, 70),
+            size=(80, 80),
         )
         rotate_button = Button(
             background_normal="assets/rotate.png",
             background_down="assets/rotate_down.png",
             size_hint=(None, None),
-            size=(70, 70),
+            size=(80, 80),
         )
         return_button = Button(
             background_normal="assets/return.png",
             background_down="assets/return_down.png",
             size_hint=(None, None),
-            size=(70, 70),
+            size=(80, 80),
         )
         reset_button = Button(
             background_normal="assets/reset.png",
             background_down="assets/reset_down.png",
             size_hint=(None, None),
-            size=(70, 70),
+            size=(80, 80),
         )
         button_panel.add_widget(flip_button)
         button_panel.add_widget(rotate_button)

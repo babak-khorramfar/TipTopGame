@@ -167,7 +167,7 @@ class Game6x6(BoxLayout):
                 self.main_section.remove_widget(child)
                 child.in_sidebar = True
                 child.selected = False
-                card.size = (50, 50)  # type: ignore
+                child.size = (50, 50)  # type: ignore
             self.sidebar.add_card(child)
         self.main_section.reset()
 
